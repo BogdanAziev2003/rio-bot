@@ -1,0 +1,29 @@
+{
+  "name": "rio-bot",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "dev": "nodemon run dev",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/BogdanAziev2003/rio-bot.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/BogdanAziev2003/rio-bot/issues"
+  },
+  "homepage": "https://github.com/BogdanAziev2003/rio-bot#readme",
+  "dependencies": {
+    "axios": "^1.6.7",
+    "dotenv": "^16.4.1",
+    "moment": "^2.30.1",
+    "moment-timezone": "^0.5.44",
+    "node-telegram-bot-api": "^0.64.0",
+    "nodemon": "^3.0.3",
+    "xlsx-populate": "^1.21.0"
+  }
+}
