@@ -10,10 +10,19 @@ let groupId = Number(process.env.GROUP_ID);
 let isGoodChange = false;
 
 let data = {
-    price: 560,
-    cart: [
+    totalPrice: 3710,
+    deliveryPrice: 150,
+    cartPrice: 3560,
+    address: "г. Беслан, ул. Кирова 46",
+    phone: "+7 (543) 534-53-45",
+    delMethod: "delivery",
+    payMethod: "card",
+    comment: "Без сыра, пожлуйста",
+    itemsInCart: [
         {
-            id: 2,
+            name: "Бургер",
+            price: 340,
+            count: 4,
             modifiers: [
                 {
                     name: "Сыр",
@@ -24,41 +33,69 @@ let data = {
                     price: 30,
                 },
             ],
-            name: "Бургер",
-            price: 340,
             sizes: [
                 {
                     title: "Стандарт",
-                    price: 280,
+                    price: 310,
+                    discount_price: null,
                 },
             ],
         },
         {
-            id: 2,
+            name: "Бургер",
+            price: 280,
+            count: 3,
+            modifiers: [
+                {
+                    name: "Сыр",
+                    price: 30,
+                },
+                {
+                    name: "Халапенье",
+                    price: 30,
+                },
+            ],
+            sizes: [
+                {
+                    title: "Стандарт",
+                    price: 310,
+                    discount_price: null,
+                },
+            ],
+        },
+        {
+            name: "Шаурма",
+            price: 390,
+            count: 3,
             modifiers: [
                 {
                     name: "Халапенье",
                     price: 30,
                 },
             ],
-            name: "Шаурма на тарелке",
-            price: 340,
             sizes: [
                 {
-                    title: "Стандарт",
-                    price: 280,
+                    title: "Экстра",
+                    price: 390,
+                    discount_price: null,
                 },
             ],
         },
         {
-            id: 2,
-            modifiers: [],
             name: "Шаурма",
             price: 340,
+            count: 1,
+            modifiers: [
+                {
+                    name: "Халапенье",
+                    price: 30,
+                },
+            ],
             sizes: [
                 {
                     title: "Стандарт",
-                    price: 280,
+                    price: 310,
+                    discount_price: null,
                 },
             ],
         },
@@ -82,7 +119,7 @@ bot.on("message", async (msg) => {
                         {
                             text: "Меню 🍔",
                             web_app: {
-                                url: "https://good-food.tg-delivery.ru/",
+                                url: "https://cosmic-pothos-b8782a.netlify.app/",
                             },
                         },
                     ],
@@ -92,7 +129,10 @@ bot.on("message", async (msg) => {
         });
     }
     if (msg.text === "/data" && chatId !== groupId) {
-        let orderText = createOrderText(data.cart);
+        let splitedItems = splitCart(data.itemsInCart);
+        let cartText = createCartText(splitedItems);
+        let orderText = `${cartText}\n${createOrderText(data)}`;
+
         let textToSend = `Новый заказ: \n${orderText}`;
         bot.sendMessage(chatId, textToSend, {
             reply_markup: {
@@ -128,12 +168,13 @@ bot.on("message", async (msg) => {
                         {
                             username: msg.chat?.username,
                             tgId: chatId,
-                            price: data.price,
+                            price: data.totalPrice,
                         }
                     );
 
+                    let textForGroup = `${textToSend}\n\nTelegram ID: ${chatId}`;
                     bot.sendMessage(chatId, "Ваш заказ был подтвержден");
-                    bot.sendMessage(groupId, textToSend);
+                    bot.sendMessage(groupId, textForGroup);
                     break;
                 case "cancelButton":
                     // Действия при нажатии на кнопку "Отменить"
@@ -153,6 +194,10 @@ bot.on("message", async (msg) => {
                     bot.sendMessage(chatId, "Неизвестная кнопка.");
             }
         });
+    }
+    if (msg?.web_app_data?.data) {
+        const data = JSON.parse(msg?.web_app_data?.data);
+        bot.sendMessage(chatId, "Пришли данные ");
     }
 
     if (msg.text === "Меню" && chatId !== groupId) {
@@ -189,7 +234,6 @@ bot.on("message", async (msg) => {
             fetchData(
                 "https://server.tg-delivery.ru/api/rio/get-goods-names"
             ).then((data) => {
-                console.log("Зашел");
                 let message = String(
                     data.map((el) => {
                         return `${el.id}. ${el.name} - ${el.stock}\n`;
@@ -275,6 +319,19 @@ bot.on("message", async (msg) => {
                         }
                     });
             });
+        } else if (msg.reply_to_message) {
+            const repliedMessageText = msg?.reply_to_message?.text; //текст сообщения, на которое был отпрален ответ
+            if (msg.text === undefined || !repliedMessageText) {
+                return;
+            }
+
+            const splitedRepliedMessageText = repliedMessageText.split("\n")
+            const tgIdStroke = splitedRepliedMessageText.filter( el => el.includes("Telegram ID"))
+            if(!tgIdStroke.length){
+                return;
+            }
+            const tgIdToReply = tgIdStroke[0].split(":")[1].trim()
+            bot.sendMessage(tgIdToReply, msg.text)
         }
         isGoodChange = false;
     }
@@ -308,17 +365,76 @@ function getCurrentDateTime() {
     return currentDate.format("YYYY-MM-DD_HH-mm-ss");
 }
 
-function createOrderText(data) {
+function createCartText(data) {
     return data
         .map((el, index) => {
             const modifiersText = el.modifiers
                 .map((modifier) => `доп. ${modifier.name}`)
                 .join("\n");
 
-            return `${index + 1}. ${el.name} (${el.price} ₽)
+            return `${index + 1}. ${el.name} (${el.price} ₽) x ${el.count}
 Размер: ${el.sizes[0].title}
 ${modifiersText}
 `;
         })
         .join("\n");
+}
+
+function splitCart(itemInCard) {
+    const itemsCount = itemInCard.reduce((acc, item) => {
+        const existingItem = acc.find(
+            (i) =>
+                i.title === item.title &&
+                JSON.stringify(i.modifiers) ===
+                    JSON.stringify(item.modifiers) &&
+                JSON.stringify(i.sizes) === JSON.stringify(item.sizes)
+        );
+
+        if (existingItem) {
+            existingItem.count += 1;
+        } else {
+            acc.push({ ...item, count: 1 });
+        }
+        return acc;
+    }, []);
+
+    return itemsCount;
+}
+
+function createOrderText(data) {
+    const phoneText = `Номер телефона: ${data.phone}`;
+    const paymentMethodText = `Метод оплаты: ${
+        data.payMethod === "cash" ? "Наличными" : "Переводом"
+    }`;
+    const deliveryTypeText = `Тип получения: ${
+        data.delMethod === "pickup" ? "Самовывоз" : "Доставка"
+    }`;
+    const addressText =
+        data.delMethod === "delivery" ? `Адрес: ${data.address}` : "";
+    const commentText =
+        data.comment !== null ? `Комментарий к заказу: ${data.comment}` : "";
+    const deliveryPriceText =
+        data.delMethod === "delivery"
+            ? `\nСтоимость доставки: ${data.deliveryPrice} ₽`
+            : "";
+    const cartPriceText =
+        data.delMethod === "delivery"
+            ? `Стоимость корзины: ${data.cartPrice} ₽`
+            : "";
+    const totalPriceText = `Цена к оплате: ${data.totalPrice} ₽`;
+
+    // Собираем все части заказа в одну строку, пропуская пустые строки
+    const orderTextParts = [
+        phoneText,
+        paymentMethodText,
+        deliveryTypeText,
+        addressText,
+        commentText,
+        deliveryPriceText,
+        cartPriceText,
+        totalPriceText,
+    ].filter((part) => part !== "");
+
+    // Склеиваем все части заказа, разделяя их переносом строки
+    return orderTextParts.join("\n");
 }
