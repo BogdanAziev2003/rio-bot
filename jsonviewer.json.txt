@@ -1,0 +1,85 @@
+{
+  "totalPrice": 2435,
+  "cartPrice": 2285,
+  "delPrice": 150,
+  "address": "г Беслан, Кирова 46",
+  "phone": "+7 (434) 343-43-43",
+  "delMethod": "delivery",
+  "payMethod": "card",
+  "comment": "Сиропа побольше",
+  "itemsInCart": [
+    {
+      "name": "Бургер",
+      "price": 310,
+      "count": 4,
+      "modifiers": [
+        {
+          "name": "Сыр"
+        }
+      ],
+      "sizes": [
+        {
+          "title": "Стандарт"
+        }
+      ]
+    },
+    {
+      "name": "Шаурма",
+      "price": 390,
+      "count": 1,
+      "modifiers": [
+        {
+          "name": "Сыр"
+        }
+      ],
+      "sizes": [
+        {
+          "title": "Экстра"
+        }
+      ]
+    },
+    {
+      "name": "Мохито fresh",
+      "price": 65,
+      "count": 1,
+      "sizes": [
+        {
+          "title": "Стандарт"
+        }
+      ],
+      "changes": [
+        "Лайм"
+      ]
+    },
+    {
+      "name": "Американо",
+      "price": 140,
+      "count": 3,
+      "modifiers": [],
+      "sizes": [
+        {
+          "title": "350 мл"
+        }
+      ],
+      "changes": [
+        "Кокосовое молоко",
+        "Сироп ореховый"
+      ]
+    },
+    {
+      "name": "Латте",
+      "price": 170,
+      "count": 1,
+      "modifiers": [],
+      "sizes": [
+        {
+          "title": "450 мл"
+        }
+      ],
+      "changes": [
+        "Обычное молоко",
+        "Без сиропа"
+      ]
+    }
+  ]
+}

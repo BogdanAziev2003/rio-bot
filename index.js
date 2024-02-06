@@ -10,94 +10,94 @@ let groupId = Number(process.env.GROUP_ID);
 let isGoodChange = false;
 
 let data = {
-    totalPrice: 3710,
-    deliveryPrice: 150,
-    cartPrice: 3560,
-    address: "г. Беслан, ул. Кирова 46",
-    phone: "+7 (543) 534-53-45",
-    delMethod: "delivery",
+    totalPrice: 2435,
+    cartPrice: 2285,
+    delPrice: 150,
+    address: "г Беслан, Кирова 46",
+    phone: "+7 (434) 343-43-43",
+    delMethod: "pickup",
     payMethod: "card",
-    comment: "Без сыра, пожлуйста",
+    comment: "Сиропа побольше",
     itemsInCart: [
         {
             name: "Бургер",
-            price: 340,
+            price: 310,
             count: 4,
             modifiers: [
                 {
                     name: "Сыр",
-                    price: 30,
-                },
-                {
-                    name: "Халапенье",
-                    price: 30,
                 },
             ],
             sizes: [
                 {
                     title: "Стандарт",
-                    price: 310,
-                    discount_price: null,
                 },
             ],
         },
         {
             name: "Бургер",
-            price: 280,
-            count: 3,
+            price: 310,
+            count: 4,
             modifiers: [
                 {
                     name: "Сыр",
-                    price: 30,
-                },
-                {
-                    name: "Халапенье",
-                    price: 30,
                 },
             ],
             sizes: [
                 {
                     title: "Стандарт",
-                    price: 310,
-                    discount_price: null,
                 },
             ],
         },
         {
             name: "Шаурма",
             price: 390,
-            count: 3,
+            count: 1,
             modifiers: [
                 {
-                    name: "Халапенье",
-                    price: 30,
+                    name: "Сыр",
                 },
             ],
             sizes: [
                 {
                     title: "Экстра",
-                    price: 390,
-                    discount_price: null,
                 },
             ],
         },
         {
-            name: "Шаурма",
-            price: 340,
+            name: "Мохито fresh",
+            price: 65,
             count: 1,
-            modifiers: [
-                {
-                    name: "Халапенье",
-                    price: 30,
-                },
-            ],
             sizes: [
                 {
                     title: "Стандарт",
-                    price: 310,
-                    discount_price: null,
                 },
             ],
+            changes: ["Лайм"],
+        },
+        {
+            name: "Американо",
+            price: 140,
+            count: 3,
+            modifiers: [],
+            sizes: [
+                {
+                    title: "350 мл",
+                },
+            ],
+            changes: ["Кокосовое молоко", "Сироп ореховый"],
+        },
+        {
+            name: "Латте",
+            price: 170,
+            count: 1,
+            modifiers: [],
+            sizes: [
+                {
+                    title: "450 мл",
+                },
+            ],
+            changes: ["Обычное молоко", "Без сиропа"],
         },
     ],
 };
@@ -168,13 +168,16 @@ bot.on("message", async (msg) => {
                         {
                             username: msg.chat?.username,
                             tgId: chatId,
-                            price: data.totalPrice,
+                            price: data.cartPrice,
                         }
                     );
 
                     let textForGroup = `${textToSend}\n\nTelegram ID: ${chatId}`;
                     bot.sendMessage(chatId, "Ваш заказ был подтвержден");
                     bot.sendMessage(groupId, textForGroup);
+                    if(data.cartPrice === 0 && data.delMethod === "delivery"){
+                        bot.sendMessage(groupId, "Бот не смог определить стоиомсть доставки."); 
+                    }
                     break;
                 case "cancelButton":
                     // Действия при нажатии на кнопку "Отменить"
@@ -197,7 +200,8 @@ bot.on("message", async (msg) => {
     }
     if (msg?.web_app_data?.data) {
         const data = JSON.parse(msg?.web_app_data?.data);
-        bot.sendMessage(chatId, "Пришли данные ");
+        console.log(data);
+        // bot.sendMessage(chatId, "Пришли данные ");
     }
 
     if (msg.text === "Меню" && chatId !== groupId) {
@@ -325,13 +329,15 @@ bot.on("message", async (msg) => {
                 return;
             }
 
-            const splitedRepliedMessageText = repliedMessageText.split("\n")
-            const tgIdStroke = splitedRepliedMessageText.filter( el => el.includes("Telegram ID"))
-            if(!tgIdStroke.length){
+            const splitedRepliedMessageText = repliedMessageText.split("\n");
+            const tgIdStroke = splitedRepliedMessageText.filter((el) =>
+                el.includes("Telegram ID")
+            );
+            if (!tgIdStroke.length) {
                 return;
             }
-            const tgIdToReply = tgIdStroke[0].split(":")[1].trim()
-            bot.sendMessage(tgIdToReply, msg.text)
+            const tgIdToReply = tgIdStroke[0].split(":")[1].trim();
+            bot.sendMessage(tgIdToReply, msg.text);
         }
         isGoodChange = false;
     }
@@ -368,13 +374,11 @@ function getCurrentDateTime() {
 function createCartText(data) {
     return data
         .map((el, index) => {
-            const modifiersText = el.modifiers
-                .map((modifier) => `доп. ${modifier.name}`)
-                .join("\n");
+            const modifiersText = createModifiersText(el);
+            const changesText = createChangesText(el);
 
             return `${index + 1}. ${el.name} (${el.price} ₽) x ${el.count}
-Размер: ${el.sizes[0].title}
-${modifiersText}
+Размер: ${el.sizes[0].title}${modifiersText}${changesText}
 `;
         })
         .join("\n");
@@ -415,13 +419,14 @@ function createOrderText(data) {
         data.comment !== null ? `Комментарий к заказу: ${data.comment}` : "";
     const deliveryPriceText =
         data.delMethod === "delivery"
-            ? `\nСтоимость доставки: ${data.deliveryPrice} ₽`
+            ? data.delPrice!==0 ? `\nСтоимость доставки: ${data.delPrice} ₽`: '\nСтоимость доставки: Не определена'
             : "";
     const cartPriceText =
         data.delMethod === "delivery"
             ? `Стоимость корзины: ${data.cartPrice} ₽`
             : "";
-    const totalPriceText = `Цена к оплате: ${data.totalPrice} ₽`;
+    const totalPriceText = 
+        data.delPrice ===0 && data.delMethod ==="delivery"? `` : `Цена к оплате: ${data.totalPrice} ₽`;
 
     // Собираем все части заказа в одну строку, пропуская пустые строки
     const orderTextParts = [
@@ -437,4 +442,19 @@ function createOrderText(data) {
 
     // Склеиваем все части заказа, разделяя их переносом строки
     return orderTextParts.join("\n");
+}
+
+function createModifiersText(element) {
+    if (!("modifiers" in element)) return ``;
+    return (
+        "\n" +
+        element.modifiers.map((modifier) => `доп. ${modifier.name}`).join("\n")
+    );
+}
+
+function createChangesText(element) {
+    if (!("changes" in element)) return ``;
+    if (!("modifiers" in element)) return `\nНа выбор: ` + element.changes.join(", ");
+        
+    return `На выбор: ` + element.changes.join(", ");
 }
